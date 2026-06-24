@@ -45,4 +45,10 @@ sudo chmod +x /usr/local/bin/rotate.sh
 sudo udevadm control --reload-rules
 
 echo ""
+echo "==> Applying dconf settings..."
+dconf load /org/mate/panel/toplevels/ < "$DOTFILES/dconf/mate-panel-toplevels.conf"
+dconf load /org/mate/desktop/session/ < "$DOTFILES/dconf/mate-session.conf"
+echo "  panel size and dock settings applied"
+
+echo ""
 echo "Done. Log out and back in (or reboot) to apply autostart changes."

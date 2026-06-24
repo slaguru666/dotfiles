@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Auto Rotate
+Comment=Screen auto-rotation for GPD Pocket 3 using accelerometer
+Exec=/home/tim-evans/.local/bin/auto-rotate
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true

@@ -1,0 +1,54 @@
+#!/bin/bash
+# Auto-rotation daemon for GPD Pocket 3
+# Reads orientation from iio-sensor-proxy via monitor-sensor
+# Maps to xrandr rotations for DSI-1 (physically portrait panel)
+
+DISPLAY="${DISPLAY:-:0}"
+XAUTHORITY="${XAUTHORITY:-/home/tim-evans/.Xauthority}"
+export DISPLAY XAUTHORITY
+
+TOUCH="GXTP7380:00 27C6:0113"
+STYLUS="GXTP7380:00 27C6:0113 Stylus"
+OUTPUT="DSI-1"
+
+apply_rotation() {
+    local orient="$1"
+    local xrot touch_matrix
+
+    # CTM = R_left * R_display, because udev/libinput pre-applies R_right.
+    # The CTM must undo the libinput base then apply the current display rotation.
+    case "$orient" in
+        right-up)
+            xrot="right"
+            touch_matrix="1 0 0 0 1 0 0 0 1"       # identity (libinput already = right)
+            ;;
+        bottom-up)
+            xrot="inverted"
+            touch_matrix="0 1 0 -1 0 1 0 0 1"       # R_right
+            ;;
+        left-up)
+            xrot="left"
+            touch_matrix="-1 0 1 0 -1 1 0 0 1"      # R_inverted (180°)
+            ;;
+        normal)
+            xrot="normal"
+            touch_matrix="0 -1 1 1 0 0 0 0 1"       # R_left
+            ;;
+        *)
+            return
+            ;;
+    esac
+
+    xrandr --output "$OUTPUT" --rotate "$xrot" --scale 0.64x0.64
+    xinput set-prop "$TOUCH"  "Coordinate Transformation Matrix" $touch_matrix
+    xinput set-prop "$STYLUS" "Coordinate Transformation Matrix" $touch_matrix
+}
+
+# Apply scale immediately on startup (monitors.xml doesn't persist the transform)
+xrandr --output "$OUTPUT" --scale 0.64x0.64
+
+monitor-sensor 2>/dev/null | while IFS= read -r line; do
+    if [[ "$line" =~ "Accelerometer orientation changed: "(.+) ]]; then
+        apply_rotation "${BASH_REMATCH[1]}"
+    fi
+done
